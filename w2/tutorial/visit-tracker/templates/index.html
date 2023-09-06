@@ -1,0 +1,23 @@
+<!doctype html>
+<html>
+<head>
+ <title>Datastore and Firebase Auth Example</title>
+ <script src="{{ url_for('static', filename='script.js')
+}}"></script>
+ <link type="text/css" rel="stylesheet" href="{{
+url_for('static', filename='style.css') }}">
+</head>
+<body>
+ <!-- <h1>Datastore and Firebase Auth Example</h1>
+ <h2>Last 10 visits</h2>
+ {% for time in times %}
+ <p>{{ time }}</p>
+ {% endfor %} -->
+    <h2>Last 10 visits</h2>
+    {% for time in times %}
+    <p>{{ time['timestamp'] }}</p>
+    {% endfor %}
+</body>
+</html>
+
+<!-- created key [04fa6edc9170a1ffeff5c986e99337655957ec12] of type [json] as [/home/thomas.lambert/sa-private-key.json] for [web-tracker-w2@appspot.gserviceaccount.com] -->
