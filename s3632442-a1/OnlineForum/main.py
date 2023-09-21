@@ -10,6 +10,8 @@ from werkzeug.utils import secure_filename
 app = Flask(__name__)
 app.secret_key = 'your_secret_key_here'
 
+datastore_client = datastore.Client()
+
 # Define the folder where uploaded images will be stored
 UPLOAD_FOLDER = 'uploads'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
@@ -18,11 +20,16 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # Sample user data (replace with your user data)
-user_data = {
-    "User1": {"password": "password1", "image_url": "user1.jpg"},
-    "User2": {"password": "password2", "image_url": "user2.jpg"},
-    # Add more users as needed
-}
+# user_data = {
+#     "User1": {"password": "password1", "image_url": "user1.jpg"},
+#     "User2": {"password": "password2", "image_url": "user2.jpg"},
+#     # Add more users as needed
+# }
+
+def count_users():
+    query = datastore_client.query(kind="user_data")
+    return len(list(query.fetch()))
+
 
 def is_ipv6(addr):
     """Checks if a given address is an IPv6 address."""
@@ -73,16 +80,25 @@ def login():
         username = request.form["username"]
         password = request.form["password"]
 
-        # Check if the provided username exists in the user_data dictionary
-        if username in user_data:
-            stored_password = user_data[username]["password"]
+        # Check if the provided username exists in the user_data entity kind
+        query = datastore_client.query(kind="user_data")
+        query.add_filter("username", "=", username)
+        user_entities = query.fetch(limit=1)  # Use limit to fetch a single result
 
-            # Check if the provided password matches the stored password
-            if password == stored_password:
-                session["username"] = username
-                return redirect(url_for("forum"))
+        user_entity = next(user_entities, None)  # Get the first result or None if not found
 
-        # If either the username or password is incorrect, redirect to the login page
+        if not user_entity:
+            # Username does not exist
+            return redirect(url_for("login"))
+
+        stored_password = user_entity.get("password")
+
+        # Check if the provided password matches the stored password
+        if password == stored_password:
+            session["username"] = username
+            return redirect(url_for("forum"))
+
+        # If the password is incorrect, redirect to the login page
         return redirect(url_for("login"))
 
     return """
@@ -156,3 +172,17 @@ def user(username):
 
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=8080, debug=True)
+
+    # Ensure there are at least two user data entities in the database
+    if count_users() < 2:
+        # Add initial user data entities (you can change these values)
+        initial_users = [
+            {"username": "s3632442", "password": "abc123", "image_url": "user1.jpg"},
+            {"username": "s3632443", "password": "bcd234", "image_url": "user2.jpg"}
+        ]
+
+        for user_data in initial_users:
+            entity = datastore.Entity(key=datastore_client.key("user_data"))
+            entity.update(user_data)
+            datastore_client.put(entity)
+
