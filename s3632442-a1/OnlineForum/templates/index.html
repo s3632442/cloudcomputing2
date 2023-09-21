@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Forum</title>
+</head>
+<body>
+    <h1>Forum</h1>
+    <div class="user-area">
+        <h3>User: <a href="{{ url_for('user', username=username) }}">{{ username }}</a></h3>
+        <a href="/logout">Logout</a>
+    </div>
+    <div class="message-posting-area">
+        <form action="/" method="post" enctype="multipart/form-data">
+            <div>
+                <label for="subject">Subject:</label>
+                <input type="text" name="subject" id="subject" required>
+            </div>
+            <div>
+                <label for="message">Message Text:</label>
+                <textarea name="message" id="message" rows="3" cols="60" required></textarea>
+            </div>
+            <div>
+                <label for="image">Image:</label>
+                <input type="file" name="image" id="image">
+            </div>
+            <div>
+                <input type="submit" value="Submit">
+            </div>
+        </form>
+    </div>
+    <div class="message-display-area">
+        <h2>Last 10 messages:</h2>
+        <ul>
+            {% for message in messages %}
+                <li><strong>{{ message.username }}:</strong> {{ message.subject }} - {{ message.message }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+</body>
+</html>

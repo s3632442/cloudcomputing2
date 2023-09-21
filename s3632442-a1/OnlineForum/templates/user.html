@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>User Page</title>
+</head>
+<body>
+    <h1>User Page</h1>
+    <div>
+        <h2>Welcome, {{ username }}</h2>
+        <img src="{{ url_for('static', filename=user_info['image_url']) }}" alt="User Image" width="120" height="120">
+    </div>
+    <div>
+        <!-- Add any additional user-specific information here -->
+    </div>
+</body>
+</html>
