@@ -1,3 +1,4 @@
+import random
 import datetime
 import logging
 import socket
@@ -6,11 +7,16 @@ import os
 from flask import Flask, request, render_template, redirect, url_for, session
 from google.cloud import datastore
 from werkzeug.utils import secure_filename
+from google.cloud import storage
+
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key_here'
 
 datastore_client = datastore.Client()
+storage_client = storage.Client()
+bucket_name = 'exampleapp-398810.appspot.com'  # Replace with your bucket name
+
 
 # Define the folder where uploaded images will be stored
 UPLOAD_FOLDER = 'uploads'
@@ -175,11 +181,20 @@ def user(username):
     user_entity = user_entities[0]  # Get the first result
     user_info = {
         "username": user_entity.get("username"),
-        "image_url": user_entity.get("image_url"),
         # Add more user properties as needed
     }
 
-    return render_template("user.html", username=username, user_info=user_info)
+    # Generate a random number from 0 to 9 for the image filename
+    random_number = random.randint(0, 9)
+    image_filename = f"{random_number}.png"
+
+    # Construct the URL with the bucket's public URL
+    bucket_public_url = f"https://storage.cloud.google.com/{bucket_name}"
+    image_url = f"{bucket_public_url}/{image_filename}"
+
+    return render_template("user.html", username=username, user_info=user_info, image_url=image_url)
+
+
 
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=8080, debug=True)
