@@ -164,10 +164,21 @@ def logout():
 
 @app.route("/user/<username>")
 def user(username):
-    if username not in user_data:
+    # Query the Datastore for user data based on the provided username
+    query = datastore_client.query(kind="user_data")
+    query.add_filter("username", "=", username)
+    user_entities = list(query.fetch(limit=1))  # Convert to a list to check if it's empty
+
+    if not user_entities:
         return "User not found", 404
 
-    user_info = user_data[username]
+    user_entity = user_entities[0]  # Get the first result
+    user_info = {
+        "username": user_entity.get("username"),
+        "image_url": user_entity.get("image_url"),
+        # Add more user properties as needed
+    }
+
     return render_template("user.html", username=username, user_info=user_info)
 
 if __name__ == "__main__":
