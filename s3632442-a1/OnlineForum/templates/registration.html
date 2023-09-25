@@ -1,0 +1,19 @@
+<h1>Registration</h1>
+
+<form action="/register" method="post" enctype="multipart/form-data">
+    <label for="id">ID:</label>
+    <input type="text" name="id" required><br>
+    <label for="username">Username:</label>
+    <input type="text" name="username" required><br>
+    <label for="password">Password:</label>
+    <input type="password" name="password" required><br>
+    <label for="image">User Image:</label>
+    <input type="file" name="image"><br>
+    <input type="submit" value="Register">
+</form>
+<a href="/">Back to Login</a>
+<div>
+    {% if message %}
+        <p>{{ message }}</p>
+    {% endif %}
+</div>

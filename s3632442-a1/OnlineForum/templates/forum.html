@@ -31,9 +31,16 @@
     <div class="message-display-area">
         <h2>Last 10 messages:</h2>
         <ul>
-            {% for message in messages %}
-                <li><strong>{{ message.username }}:</strong> {{ message.subject }} - {{ message.message }}</li>
-            {% endfor %}
+            <!-- Loop through the messages and display user images -->
+{% for message in messages %}
+<div>
+    <h3>{{ message.username }}</h3>
+    <img src="{{ user_images.get(message.username) }}" alt="User Image" width="60" height="60">
+    <p>Subject: {{ message.subject }}</p>
+    <p>{{ message.message }}</p>
+</div>
+{% endfor %}
+
         </ul>
     </div>
 </body>

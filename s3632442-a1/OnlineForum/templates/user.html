@@ -1,5 +1,13 @@
 <!DOCTYPE html>
 <html>
+    <div id="header">
+        <h1>Your Forum Title</h1>
+        <nav>
+            {% if session.username %}
+                <a href="/logout">Logout</a>
+            {% endif %}
+        </nav>
+    </div>
 <head>
     <title>User Page</title>
 </head>
@@ -10,7 +18,7 @@
         <img src="{{ image_url }}" alt="User Image">
     </div>
     <div>
-        
+        <a href="/forum">Back to Forum</a>
     </div>
 </body>
 </html>

@@ -124,6 +124,7 @@ def login():
                     <input type="submit" value="Login">
                 </div>
             </form>
+            <p>Don't have an account? <a href="/register">Register here</a></p>
         </body>
     </html>
     """
@@ -152,14 +153,105 @@ def forum():
     query = ds.query(kind="message", order=("-timestamp",))
 
     messages = []
+    
+    # Create a dictionary to store user images
+    user_images = {}
+
     for message_entity in query.fetch(limit=10):
         user_message = message_entity.get("user_message", "Message content not found.")
         username = message_entity.get("username", "Unknown User")
         subject = message_entity.get("subject", "No Subject")
         image_url = message_entity.get("image_url", None)
+
+        # Store the image URL for this user
+        if username and image_url:
+            user_images[username] = image_url
+
         messages.append({"username": username, "subject": subject, "message": user_message, "image_url": image_url})
 
-    return render_template("forum.html", username=session["username"], messages=messages)
+    # Debugging: Print user_images and message.username values
+    print("user_images:", user_images)
+    for message in messages:
+        print("message.username:", message["username"])
+
+    return render_template("forum.html", username=session["username"], messages=messages, user_images=user_images)
+
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    if request.method == "POST":
+        id = request.form["id"]
+        username = request.form["username"]
+        password = request.form["password"]
+        
+        # Get the uploaded image file from the request
+        image_file = request.files["image"]
+
+        # Validate the ID and username against Datastore
+        if validate_id_and_username(id, username):
+            # If ID and username are valid, store registration information
+            store_registration_data(id, username, password, image_file)
+            return render_template("registration_successful.html")  # Render the success page
+        else:
+            return render_template("invalid_id_username.html")  # Render the invalid ID or username page
+
+    return render_template("registration.html")
+
+
+from google.cloud import datastore
+
+def validate_id_and_username(id, username):
+    # Check if the provided `id` and `username` are not empty
+    if not id or not username:
+        return False
+
+    # Initialize the Datastore client
+    datastore_client = datastore.Client()
+
+    # Query the Datastore to check if the ID and username already exist
+    query = datastore_client.query(kind="user_data")
+    query.add_filter("id", "=", id)
+    query.add_filter("username", "=", username)
+
+    # Execute the query and check if any results are returned
+    result = list(query.fetch())
+
+    # If there are no results, the ID and username are unique and valid
+    return not bool(result)
+
+
+def store_registration_data(id, username, password, image_file):
+    # Initialize the Datastore client
+    datastore_client = datastore.Client()
+
+    # Initialize the Storage client and specify your bucket name
+    storage_client = storage.Client()
+    bucket_name = 'exampleapp-398810.appspot.com'  # Replace with your bucket name
+
+    # Create a unique filename for the user image
+    filename = secure_filename(image_file.filename)
+
+    # Specify the object name (this is how the file will be stored in the bucket)
+    object_name = f"images/{filename}"  # You can adjust the object name structure as needed
+
+    # Save the user image to your storage with the specified object name
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.blob(object_name)
+    blob.upload_from_string(image_file.read(), content_type=image_file.content_type)
+
+    # Get the URL of the uploaded image
+    image_url = blob.public_url
+
+    # Create a Datastore entity for the user registration
+    entity = datastore.Entity(key=datastore_client.key("user_data"))
+    entity.update({
+        "id": id,
+        "username": username,
+        "password": password,  # Remember to securely hash the password
+        "image_url": image_url,
+    })
+
+    # Store the registration information in Datastore
+    datastore_client.put(entity)
 
 
 @app.route("/logout")
