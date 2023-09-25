@@ -1,6 +1,5 @@
 import random
 import datetime
-import logging
 import socket
 import random  # Added for generating random user images
 import os
