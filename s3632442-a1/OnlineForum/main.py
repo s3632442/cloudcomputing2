@@ -127,7 +127,8 @@ def login():
             # Check if the provided password matches the stored password
             if password == stored_password:
                 session["id"] = id  # Store the authenticated ID in the session
-                print("User successfully logged in. ID:", session["id"])  # Debugging statement
+                session["username"] = user_entity.get("username")  # Store the authenticated username in the session
+                print("User successfully logged in. ID:", session["id"], "Username:", session["username"])  # Debugging statement
                 return redirect(url_for("forum"))
 
             # If the password is incorrect (generic error message)
@@ -135,6 +136,8 @@ def login():
             print("Password incorrect for user with ID:", id)  # Debugging statement
 
     return render_template("login.html", error_message=error_message, user_credentials=user_credentials)
+
+
 
 
 # Debugging function to fetch all user credentials (remove in production)
