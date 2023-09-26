@@ -5,6 +5,7 @@
 </head>
 <body>
     <h1>Login</h1>
+    
     <!-- Debugging: Display user credentials (remove in production) -->
     {% if user_credentials %}
     <div>
@@ -20,11 +21,11 @@
     <form action="/" method="post">
         <div>
             <label for="id">ID:</label>
-            <input type="text" name="id" id="id">
+            <input type="text" name="id" id="id" required> <!-- Added 'required' attribute -->
         </div>
         <div>
             <label for="password">Password:</label>
-            <input type="password" name="password" id="password">
+            <input type="password" name="password" id="password" required> <!-- Added 'required' attribute -->
         </div>
         <div>
             <input type="submit" value="Login">

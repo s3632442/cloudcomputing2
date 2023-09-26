@@ -145,7 +145,7 @@ def fetch_all_user_credentials():
 
 @app.route("/forum", methods=["GET", "POST"])
 def forum():
-    if "username" not in session:
+    if "id" not in session:
         return redirect(url_for("login"))
 
     ds = datastore.Client()
