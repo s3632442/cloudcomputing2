@@ -119,7 +119,7 @@ def login():
 
             # Check if the provided password matches the stored password
             if password == stored_password:
-                session["id"] = id  # Store the authenticated ID in the session
+                session["username"] = user_entity.get("username")  # Store the authenticated username in the session
                 return redirect(url_for("forum"))
 
             # If the password is incorrect (generic error message)
@@ -145,8 +145,9 @@ def fetch_all_user_credentials():
 
 @app.route("/forum", methods=["GET", "POST"])
 def forum():
-    if "username" not in session:
+    if "id" not in session:
         return redirect(url_for("login"))
+
 
     ds = datastore.Client()
 
