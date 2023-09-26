@@ -7,6 +7,7 @@ from flask import Flask, request, render_template, redirect, url_for, session
 from google.cloud import datastore
 from werkzeug.utils import secure_filename
 from google.cloud import storage
+from flask import send_from_directory
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key_here'
@@ -33,6 +34,11 @@ def is_ipv6(addr):
         return True
     except OSError:
         return False
+
+@app.route('/uploads/<filename>')
+def uploaded_file(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
 
 def store_message(datastore, username, subject, message_text, image_url):
     entity = datastore.Entity(key=datastore.key("message"))
@@ -114,18 +120,22 @@ def login():
         if not user_entity:
             # ID or password is incorrect (generic error message)
             error_message = "ID or password is incorrect. Please try again."
+            print("User not found. ID:", id, "Password:", password)  # Debugging statement
         else:
             stored_password = user_entity.get("password")
 
             # Check if the provided password matches the stored password
             if password == stored_password:
-                session["username"] = user_entity.get("username")  # Store the authenticated username in the session
+                session["id"] = id  # Store the authenticated ID in the session
+                print("User successfully logged in. ID:", session["id"])  # Debugging statement
                 return redirect(url_for("forum"))
 
             # If the password is incorrect (generic error message)
             error_message = "ID or password is incorrect. Please try again."
+            print("Password incorrect for user with ID:", id)  # Debugging statement
 
     return render_template("login.html", error_message=error_message, user_credentials=user_credentials)
+
 
 # Debugging function to fetch all user credentials (remove in production)
 def fetch_all_user_credentials():
@@ -279,25 +289,30 @@ def logout():
 
 @app.route("/user/<username>")
 def user(username):
+    # Query the Datastore for user data based on the provided username
     query = datastore_client.query(kind="user_data")
     query.add_filter("username", "=", username)
-    user_entities = list(query.fetch(limit=1))
+    user_entities = list(query.fetch(limit=1))  # Convert to a list to check if it's empty
 
     if not user_entities:
         return "User not found", 404
 
-    user_entity = user_entities[0]
+    user_entity = user_entities[0]  # Get the first result
     user_info = {
         "username": user_entity.get("username"),
+        # Add more user properties as needed
     }
 
+    # Generate a random number from 0 to 9 for the image filename
     random_number = random.randint(0, 9)
     image_filename = f"{random_number}.png"
 
+    # Construct the URL with the bucket's public URL
     bucket_public_url = f"https://storage.cloud.google.com/{bucket_name}"
     image_url = f"{bucket_public_url}/{image_filename}"
 
     return render_template("user.html", username=username, user_info=user_info, image_url=image_url)
+
 
 @app.route("/reset_datastore")
 def reset_datastore():
