@@ -1,0 +1,28 @@
+<form action="/register" method="post" enctype="multipart/form-data">
+    <!-- ID -->
+    <div>
+        <label for="id">ID:</label>
+        <input type="text" name="id" id="id" required>
+        <span class="error">{{ id_error }}</span>
+    </div>
+    <!-- Username -->
+    <div>
+        <label for="username">Username:</label>
+        <input type="text" name="username" id="username" required>
+        <span class="error">{{ username_error }}</span>
+    </div>
+    <!-- Password -->
+    <div>
+        <label for="password">Password:</label>
+        <input type="password" name="password" id="password" required>
+        <span class="error">{{ password_error }}</span>
+    </div>
+    <!-- Image Upload -->
+    <div>
+        <label for="image">Profile Image:</label>
+        <input type="file" name="image" id="image">
+    </div>
+    <div>
+        <input type="submit" value="Register">
+    </div>
+</form>

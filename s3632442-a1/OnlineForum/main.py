@@ -81,6 +81,8 @@ def save_image(file):
 
 @app.route("/", methods=["GET", "POST"])
 def login():
+    error_message = ""
+
     if request.method == "POST":
         username = request.form["username"]
         password = request.form["password"]
@@ -93,41 +95,20 @@ def login():
         user_entity = next(user_entities, None)  # Get the first result or None if not found
 
         if not user_entity:
-            # Username does not exist
-            return redirect(url_for("login"))
+            # Username or password is incorrect (generic error message)
+            error_message = "Username or password is incorrect. Please try again."
+        else:
+            stored_password = user_entity.get("password")
 
-        stored_password = user_entity.get("password")
+            # Check if the provided password matches the stored password
+            if password == stored_password:
+                session["username"] = username
+                return redirect(url_for("forum"))
 
-        # Check if the provided password matches the stored password
-        if password == stored_password:
-            session["username"] = username
-            return redirect(url_for("forum"))
+            # If the password is incorrect (generic error message)
+            error_message = "Username or password is incorrect. Please try again."
 
-        # If the password is incorrect, redirect to the login page
-        return redirect(url_for("login"))
-
-    return """
-    <html>
-        <head><title>Login</title></head>
-        <body>
-            <h1>Login</h1>
-            <form action="/" method="post">
-                <div>
-                    <label for="username">Username:</label>
-                    <input type="text" name="username" id="username">
-                </div>
-                <div>
-                    <label for="password">Password:</label>
-                    <input type="password" name="password" id="password">
-                </div>
-                <div>
-                    <input type="submit" value="Login">
-                </div>
-            </form>
-            <p>Don't have an account? <a href="/register">Register here</a></p>
-        </body>
-    </html>
-    """
+    return render_template("login.html", error_message=error_message)
 
 @app.route("/forum", methods=["GET", "POST"])
 def forum():
@@ -178,23 +159,44 @@ def forum():
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
+    id_error = ""
+    username_error = ""
+    password_error = ""
+    
     if request.method == "POST":
         id = request.form["id"]
         username = request.form["username"]
         password = request.form["password"]
-        
-        # Get the uploaded image file from the request
         image_file = request.files["image"]
 
-        # Validate the ID and username against Datastore
-        if validate_id_and_username(id, username):
-            # If ID and username are valid, store registration information
-            store_registration_data(id, username, password, image_file)
-            return render_template("registration_successful.html")  # Render the success page
+        # Validate ID, username, and password
+        if not id or not username or not password:
+            if not id:
+                id_error = "ID is required."
+            if not username:
+                username_error = "Username is required."
+            if not password:
+                password_error = "Password is required."
         else:
-            return render_template("invalid_id_username.html")  # Render the invalid ID or username page
+            # Check if the username already exists
+            username_exists = validate_username_exists(username)
+            if username_exists:
+                username_error = "Username already exists. Please choose a different username."
 
-    return render_template("registration.html")
+            # Validate password requirements
+            password_requirements = validate_password_requirements(password)
+            if not password_requirements:
+                password_error = "Password must contain at least one letter, one number, one capital letter, and one special character."
+
+            if not username_error and not password_error:
+                if validate_id_and_username(id, username):
+                    store_registration_data(id, username, password, image_file)
+                    return render_template("registration_successful.html")
+                else:
+                    return render_template("invalid_id_username.html")
+
+    return render_template("register.html", id_error=id_error, username_error=username_error, password_error=password_error)
+
 
 
 from google.cloud import datastore
@@ -202,6 +204,10 @@ from google.cloud import datastore
 def validate_id_and_username(id, username):
     # Check if the provided `id` and `username` are not empty
     if not id or not username:
+        return False
+
+    # Check if the ID and username match the required pattern
+    if not re.match(r'^[a-zA-Z0-9_-]+$', id) or not re.match(r'^[a-zA-Z0-9_-]+$', username):
         return False
 
     # Initialize the Datastore client
@@ -285,6 +291,18 @@ def user(username):
 
     return render_template("user.html", username=username, user_info=user_info, image_url=image_url)
 
+import re
+
+def validate_username_exists(username):
+    query = datastore_client.query(kind="user_data")
+    query.add_filter("username", "=", username)
+    user_entities = query.fetch(limit=1)
+    user_entity = next(user_entities, None)
+    return user_entity is not None
+
+def validate_password_requirements(password):
+    # Password must contain at least one letter, one number, one capital letter, and one special character.
+    return re.match(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]+$', password)
 
 
 if __name__ == "__main__":
