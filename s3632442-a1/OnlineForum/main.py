@@ -363,7 +363,7 @@ def user(username):
     return render_template("user.html", username=username, user_info=user_info, image_url=image_url, user_posts=user_posts, user_images=user_images)
 
 
-@app.route("/edit_message/<int:message_id>", methods=["GET"])
+@app.route("/edit_message/<int:message_id>", methods=["GET", "POST"])
 def edit_message(message_id):
     if "id" not in session:
         return redirect(url_for("login"))
@@ -375,8 +375,22 @@ def edit_message(message_id):
     if not message_entity:
         return "Message not found", 404
 
+    if request.method == "POST":
+        # Get the new subject and message content from the form
+        new_subject = request.form["new_subject"]
+        new_message = request.form["new_message"]
+
+        # Update the message entity with the new subject and message content
+        message_entity["subject"] = new_subject
+        message_entity["user_message"] = new_message
+        datastore_client.put(message_entity)
+
+        # Redirect to the forum page after updating the message
+        return redirect(url_for("forum"))
+
     # Render the "Edit Message" page with the original message data
     return render_template("edit_message.html", message=message_entity, username=session["username"])
+
 
 
 @app.route("/change_password", methods=["POST"])
