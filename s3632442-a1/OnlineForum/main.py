@@ -23,6 +23,8 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 # Configure Flask to use the UPLOAD_FOLDER
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
+initialized = False
+
 def count_users():
     query = datastore_client.query(kind="user_data")
     return len(list(query.fetch()))
@@ -382,12 +384,38 @@ def insert_initial_users():
         entity.update(entity_data)
         datastore_client.put(entity)
 
+def reset_users():
+    # Delete all entities from the 'user_data' kind
+    delete_all_entities("user_data")
 
+    # Insert ten new user entities
+    for i in range(10):
+        user_id = f"s3632442{i + 20}"
+        username = f"Thomas{i} Lambert{i}"
+        
+        # Generate the password using a loop
+        password = "".join(str(j % 10) for j in range(i, i + 6))
+        
+        image_url = f"user{i}.jpg"
+        
+        entity_data = {
+            "id": user_id,
+            "username": username,
+            "password": password,
+            "image_url": image_url,
+        }
+
+        datastore_client.put(datastore.Entity(key=datastore_client.key("user_data"), **entity_data))
+    
+def reset_users():
+        delete_all_entities()  # Delete all existing entities
+        insert_initial_users()  # Insert new entities with specific values
+
+if initialized == False:
+    reset_users()
+    initialized = False
 
 if __name__ == "__main__":
-
-    delete_all_entities()  # Delete all existing entities
-    insert_initial_users()  # Insert new entities with specific values
 
     app.run(host="127.0.0.1", port=8080, debug=True)
 
