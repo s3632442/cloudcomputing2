@@ -315,6 +315,7 @@ def logout():
 
 @app.route("/user/<username>")
 def user(username):
+    
     # Query the Datastore for user data based on the provided username
     query = datastore_client.query(kind="user_data")
     query.add_filter("username", "=", username)
@@ -340,7 +341,7 @@ def user(username):
 
 @app.route("/change_password", methods=["POST"])
 def change_password():
-    if "username" not in session:
+    if "id" not in session:
         return redirect(url_for("login"))
 
     old_password = request.form["old_password"]
@@ -348,7 +349,7 @@ def change_password():
 
     # Fetch the user entity from the datastore
     query = datastore_client.query(kind="user_data")
-    query.add_filter("username", "=", session["username"])
+    query.add_filter("id", "=", session["id"])
     user_entity = next(query.fetch(limit=1), None)
 
     if not user_entity:
@@ -357,14 +358,19 @@ def change_password():
     stored_password = user_entity.get("password")
 
     if old_password != stored_password:
+        # The old password is incorrect, so render the user page with an error message
+        user_number = re.search(r'\d+$', session["username"]).group(0)
+        image_filename = f"user{user_number}.jpg"
+        image_url = f"https://storage.cloud.google.com/{bucket_name}/{image_filename}"
         return render_template("user.html", username=session["username"], image_url=image_url, message="The old password is incorrect.")
 
     # Update the password in the datastore
     user_entity["password"] = new_password
     datastore_client.put(user_entity)
 
-    # Redirect to the login page
-    return redirect(url_for("login"))
+    # Redirect to the user page after changing the password
+    return redirect(url_for("user", username=session["username"]))
+
 
 @app.route("/reset_datastore")
 def reset_datastore():
