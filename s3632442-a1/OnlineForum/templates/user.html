@@ -36,8 +36,9 @@
                 <p>Subject: {{ message.subject }}</p>
                 <p>{{ message.user_message }}</p>
                 
-                <!-- Add an Edit button with a link to edit the message -->
-                <a href="/edit_message/{{ message.key.id }}">Edit Message</a>
+                <form method="GET" action="/edit_message/{{ message.key.id }}">
+                    <button type="submit">Edit Message</button>
+                </form>
             </div>
             {% endfor %}
         </ul>
