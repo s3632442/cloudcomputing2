@@ -1,4 +1,5 @@
-import random
+from werkzeug.datastructures import FileStorage
+import time
 import datetime
 import socket
 import os
@@ -65,13 +66,23 @@ def store_message(datastore_client, username, subject, message_text, image_url):
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-def save_image(file):
+# Modify the save_image function to store images in the Google Cloud Storage bucket
+def save_image(file, image_reference):
     if file and allowed_file(file.filename):
-        os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-        filename = secure_filename(file.filename)
-        file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-        return url_for('uploaded_file', filename=filename)
+        # Construct the object name in the bucket
+        object_name = f"images/{image_reference}"
+
+        # Upload the image to Google Cloud Storage
+        bucket = storage_client.bucket(bucket_name)
+        blob = bucket.blob(object_name)
+        blob.upload_from_string(file.read(), content_type=file.content_type)
+
+        # Return the public URL of the uploaded image
+        image_url = blob.public_url
+        return image_url
+
     return None
+
 
 # @app.route("/", methods=["GET", "POST"])
 # def login():
@@ -179,7 +190,9 @@ def forum():
 
         if "image" in request.files:
             image_file = request.files["image"]
-            image_url = save_image(image_file)
+            # Modify the object name to include the virtual directory
+            image_reference = f"images/{session['username']}/{int(time.time())}.png" 
+            image_url = save_image(image_file, image_reference) 
         else:
             image_url = None
 
@@ -195,24 +208,9 @@ def forum():
         subject = message_entity.get("subject", "No Subject")
         image_url = message_entity.get("image_url", None)
 
-        if username:
-            # Extract the number at the end of the username
-            user_number_match = re.search(r'\d+$', username)
-            user_number = user_number_match.group(0) if user_number_match else ""
-
-            # Construct the image URL based on the extracted number
-            image_filename = f"{user_number}.png"
-            image_url = f"https://storage.cloud.google.com/{bucket_name}/{image_filename}"
-
-            user_images[username] = image_url  # Store the constructed image URL in the dictionary
-
         messages.append({"username": username, "subject": subject, "message": user_message, "image_url": image_url})
 
     return render_template("forum.html", id=session["id"], messages=messages, user_images=user_images)
-
-
-
-
 
 
 @app.route("/register", methods=["GET", "POST"])
@@ -361,6 +359,49 @@ def user(username):
             user_images[message["username"]] = image_url  # Store the constructed image URL in the dictionary
 
     return render_template("user.html", username=username, user_info=user_info, image_url=image_url, user_posts=user_posts, user_images=user_images)
+
+
+def store_message(datastore_client, username, subject, message_text, image_file):
+    # Create an incomplete key with the kind 'message'
+    key = datastore_client.key("message")
+
+    # Create a new entity with the incomplete key
+    entity = datastore.Entity(key=key)
+
+    entity.update(
+        {
+            "user_message": message_text,
+            "timestamp": datetime.datetime.now(tz=datetime.timezone.utc),
+            "username": username,
+            "subject": subject,
+        }
+    )
+
+    if image_file:
+        # Save the uploaded image with a unique reference in its title
+        image_reference = f"{username}_{int(time.time())}.png"
+        save_image(image_file, image_reference)
+
+        entity["image_url"] = image_reference  # Store the image reference in the entity
+
+    datastore_client.put(entity)
+
+def save_image(file, image_reference):
+    if file and isinstance(file, FileStorage) and allowed_file(file.filename):
+        # Construct the object name with the "images" directory
+        object_name = f"images/{image_reference}"
+
+        # Upload the image to Google Cloud Storage
+        bucket = storage_client.bucket(bucket_name)
+        blob = bucket.blob(object_name)
+        blob.upload_from_string(file.read(), content_type=file.content_type)
+
+        # Return the public URL of the uploaded image
+        image_url = blob.public_url
+        return image_url
+
+    return None
+
 
 
 @app.route("/edit_message/<int:message_id>", methods=["GET", "POST"])

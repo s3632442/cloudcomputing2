@@ -10,7 +10,7 @@
         <a href="/logout">Logout</a>
     </div>
     <div class="message-posting-area">
-        <form method="POST" action="/forum">
+        <form method="POST" action="/forum" enctype="multipart/form-data">
             <div>
                 <label for="subject">Subject:</label>
                 <input type="text" name="subject" id="subject" required>
@@ -33,13 +33,17 @@
     <div class="message-display-area">
         <h2>Last 10 messages:</h2>
         <ul>
-            <!-- Loop through the messages and display user images -->
             {% for message in messages %}
             <div>
                 <h3>{{ message.username }}</h3>
-                <img src="{{ user_images.get(message.username) }}" alt="User Image" width="60" height="60">
                 <p>Subject: {{ message.subject }}</p>
                 <p>{{ message.message }}</p>
+                
+                {% if message.image_url %}
+                <!-- Display the attached image if it exists -->
+                <img src="{{ message.image_url }}" alt="Attached Image" width="150">
+
+                {% endif %}
             </div>
             {% endfor %}
         </ul>
