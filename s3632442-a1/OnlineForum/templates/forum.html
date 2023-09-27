@@ -10,7 +10,7 @@
         <a href="/logout">Logout</a>
     </div>
     <div class="message-posting-area">
-        <form action="/" method="post" enctype="multipart/form-data">
+        <form method="POST" action="/forum">
             <div>
                 <label for="subject">Subject:</label>
                 <input type="text" name="subject" id="subject" required>
@@ -24,6 +24,8 @@
                 <input type="file" name="image" id="image">
             </div>
             <div>
+                <!-- Use the new user_id field for message submission -->
+                <input type="hidden" name="user_id" value="{{ id }}">
                 <input type="submit" value="Submit">
             </div>
         </form>
@@ -32,15 +34,14 @@
         <h2>Last 10 messages:</h2>
         <ul>
             <!-- Loop through the messages and display user images -->
-{% for message in messages %}
-<div>
-    <h3>{{ message.username }}</h3>
-    <img src="{{ user_images.get(message.username) }}" alt="User Image" width="60" height="60">
-    <p>Subject: {{ message.subject }}</p>
-    <p>{{ message.message }}</p>
-</div>
-{% endfor %}
-
+            {% for message in messages %}
+            <div>
+                <h3>{{ message.username }}</h3>
+                <img src="{{ user_images.get(message.username) }}" alt="User Image" width="60" height="60">
+                <p>Subject: {{ message.subject }}</p>
+                <p>{{ message.message }}</p>
+            </div>
+            {% endfor %}
         </ul>
     </div>
 </body>

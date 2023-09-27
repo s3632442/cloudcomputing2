@@ -39,9 +39,13 @@ def is_ipv6(addr):
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
+def store_message(datastore_client, username, subject, message_text, image_url):
+    # Create an incomplete key with the kind 'message'
+    key = datastore_client.key("message")
 
-def store_message(datastore, username, subject, message_text, image_url):
-    entity = datastore.Entity(key=datastore.key("message"))
+    # Create a new entity with the incomplete key
+    entity = datastore.Entity(key=key)
+
     entity.update(
         {
             "user_message": message_text,
@@ -51,7 +55,10 @@ def store_message(datastore, username, subject, message_text, image_url):
             "image_url": image_url,
         }
     )
-    datastore.put(entity)
+
+    datastore_client.put(entity)
+
+
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -155,14 +162,15 @@ def fetch_all_user_credentials():
     return user_credentials
 
 ##########################################################
-
 @app.route("/forum", methods=["GET", "POST"])
 def forum():
-    if "id" not in session:
+    if "id" not in session:  # Check for the presence of the 'id' in the session
         return redirect(url_for("login"))
 
-
     ds = datastore.Client()
+
+    # Initialize image_url with None
+    image_url = None
 
     if request.method == "POST":
         subject = request.form["subject"]
@@ -172,7 +180,8 @@ def forum():
             image_file = request.files["image"]
             image_url = save_image(image_file)
 
-        store_message(ds, session["username"], subject, message_text, image_url)
+        store_message(datastore_client, session["username"], subject, message_text, image_url)
+
 
     query = ds.query(kind="message", order=("-timestamp",))
 
@@ -190,7 +199,9 @@ def forum():
 
         messages.append({"username": username, "subject": subject, "message": user_message, "image_url": image_url})
 
-    return render_template("forum.html", username=session["username"], messages=messages, user_images=user_images)
+    return render_template("forum.html", id=session["id"], messages=messages, user_images=user_images)  # Use session["id"] as the id
+
+
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
