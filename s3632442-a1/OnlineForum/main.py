@@ -315,7 +315,6 @@ def logout():
 
 @app.route("/user/<username>")
 def user(username):
-    
     # Query the Datastore for user data based on the provided username
     query = datastore_client.query(kind="user_data")
     query.add_filter("username", "=", username)
@@ -337,7 +336,28 @@ def user(username):
     image_filename = f"{user_number}.png"
     image_url = f"https://storage.cloud.google.com/{bucket_name}/{image_filename}"
 
-    return render_template("user.html", username=username, user_info=user_info, image_url=image_url, message="")
+    # Query the Datastore for the user's posts
+    query = datastore_client.query(kind="message")
+    query.add_filter("username", "=", username)
+    user_posts = list(query.fetch(limit=10))
+
+    # Fetch user images for the user posts
+    user_images = {}  # Initialize the user_images dictionary here
+
+    for message in user_posts:
+        if message["username"]:
+            # Extract the number at the end of the username
+            user_number_match = re.search(r'\d+$', message["username"])
+            user_number = user_number_match.group(0) if user_number_match else ""
+
+            # Construct the image URL based on the extracted number
+            image_filename = f"{user_number}.png"
+            image_url = f"https://storage.cloud.google.com/{bucket_name}/{image_filename}"
+
+            user_images[message["username"]] = image_url  # Store the constructed image URL in the dictionary
+
+    return render_template("user.html", username=username, user_info=user_info, image_url=image_url, user_posts=user_posts, user_images=user_images)
+
 
 @app.route("/change_password", methods=["POST"])
 def change_password():
@@ -360,7 +380,7 @@ def change_password():
     if old_password != stored_password:
         # The old password is incorrect, so render the user page with an error message
         user_number = re.search(r'\d+$', session["username"]).group(0)
-        image_filename = f"user{user_number}.jpg"
+        image_filename = f"{user_number}.png"
         image_url = f"https://storage.cloud.google.com/{bucket_name}/{image_filename}"
         return render_template("user.html", username=session["username"], image_url=image_url, message="The old password is incorrect.")
 

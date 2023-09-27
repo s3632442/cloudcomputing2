@@ -1,13 +1,5 @@
 <!DOCTYPE html>
 <html>
-    <div id="header">
-        <h1>Your Forum Title</h1>
-        <nav>
-            {% if session.username %}
-                <a href="/logout">Logout</a>
-            {% endif %}
-        </nav>
-    </div>
 <head>
     <title>User Page</title>
 </head>
@@ -21,16 +13,31 @@
         <form method="POST" action="/change_password">
             <label for="old_password">Old Password:</label>
             <input type="password" id="old_password" name="old_password" required><br>
-    
+
             <label for="new_password">New Password:</label>
             <input type="password" id="new_password" name="new_password" required><br>
-    
+
             <input type="submit" value="Change">
         </form>
-        <p>{{ message }}</p>  <!-- Display validation messages here -->
+        <p>{{ message }}</p>
     </div>
     <div>
         <a href="/forum">Back to Forum</a>
+    </div>
+
+    <!-- Display user's posts like in the forum page -->
+    <div class="message-display-area">
+        <h2>User's Posts:</h2>
+        <ul>
+            {% for message in user_posts %}
+            <div>
+                <h3>{{ message.username }}</h3>
+                <img src="{{ user_images.get(message.username) }}" alt="User Image" width="60" height="60">
+                <p>Subject: {{ message.subject }}</p>
+                <p>{{ message.message }}</p>
+            </div>
+            {% endfor %}
+        </ul>
     </div>
 </body>
 </html>
