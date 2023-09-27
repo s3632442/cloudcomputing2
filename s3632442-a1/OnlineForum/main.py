@@ -164,13 +164,12 @@ def fetch_all_user_credentials():
 ##########################################################
 @app.route("/forum", methods=["GET", "POST"])
 def forum():
-    if "id" not in session:  # Check for the presence of the 'id' in the session
+    if "id" not in session:
         return redirect(url_for("login"))
 
     ds = datastore.Client()
-
-    # Initialize image_url with None
-    image_url = None
+    
+    user_images = {}  # Initialize the user_images dictionary here
 
     if request.method == "POST":
         subject = request.form["subject"]
@@ -179,14 +178,14 @@ def forum():
         if "image" in request.files:
             image_file = request.files["image"]
             image_url = save_image(image_file)
+        else:
+            image_url = None
 
         store_message(datastore_client, session["username"], subject, message_text, image_url)
-
 
     query = ds.query(kind="message", order=("-timestamp",))
 
     messages = []
-    user_images = {}
 
     for message_entity in query.fetch(limit=10):
         user_message = message_entity.get("user_message", "Message content not found.")
@@ -194,12 +193,23 @@ def forum():
         subject = message_entity.get("subject", "No Subject")
         image_url = message_entity.get("image_url", None)
 
-        if username and image_url:
-            user_images[username] = image_url
+        if username:
+            # Extract the number at the end of the username
+            user_number_match = re.search(r'\d+$', username)
+            user_number = user_number_match.group(0) if user_number_match else ""
+
+            # Construct the image URL based on the extracted number
+            image_filename = f"{user_number}.png"
+            image_url = f"https://storage.cloud.google.com/{bucket_name}/{image_filename}"
+
+            user_images[username] = image_url  # Store the constructed image URL in the dictionary
 
         messages.append({"username": username, "subject": subject, "message": user_message, "image_url": image_url})
 
-    return render_template("forum.html", id=session["id"], messages=messages, user_images=user_images)  # Use session["id"] as the id
+    return render_template("forum.html", id=session["id"], messages=messages, user_images=user_images)
+
+
+
 
 
 
@@ -317,15 +327,15 @@ def user(username):
         # Add more user properties as needed
     }
 
-    # Generate a random number from 0 to 9 for the image filename
-    random_number = random.randint(0, 9)
-    image_filename = f"{random_number}.png"
+    # Extract the number at the end of the username
+    user_number = re.search(r'\d+$', username).group(0)
 
-    # Construct the URL with the bucket's public URL
-    bucket_public_url = f"https://storage.cloud.google.com/{bucket_name}"
-    image_url = f"{bucket_public_url}/{image_filename}"
+    # Construct the image URL based on the extracted number
+    image_filename = f"{user_number}.png"
+    image_url = f"https://storage.cloud.google.com/{bucket_name}/{image_filename}"
 
     return render_template("user.html", username=username, user_info=user_info, image_url=image_url)
+
 
 
 @app.route("/reset_datastore")

@@ -6,7 +6,7 @@
 <body>
     <h1>Forum</h1>
     <div class="user-area">
-        <h3>User: <a href="{{ url_for('user', username=username) }}">{{ username }}</a></h3>
+        <h3>User: <a href="{{ url_for('user', username=session['username']) }}">{{ session['username'] }}</a></h3>
         <a href="/logout">Logout</a>
     </div>
     <div class="message-posting-area">
