@@ -389,7 +389,7 @@ def store_message(datastore_client, username, subject, message_text, image_file)
 def save_image(file, image_reference):
     if file and isinstance(file, FileStorage) and allowed_file(file.filename):
         # Construct the object name with the "images" directory
-        object_name = f"images/{image_reference}"
+        object_name = f"{image_reference}"
 
         # Upload the image to Google Cloud Storage
         bucket = storage_client.bucket(bucket_name)
