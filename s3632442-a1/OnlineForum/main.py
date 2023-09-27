@@ -339,7 +339,7 @@ def user(username):
     # Query the Datastore for the user's posts
     query = datastore_client.query(kind="message")
     query.add_filter("username", "=", username)
-    user_posts = list(query.fetch(limit=10))
+    user_posts = list(query.fetch)
 
     # Fetch user images for the user posts
     user_images = {}  # Initialize the user_images dictionary here
@@ -357,6 +357,22 @@ def user(username):
             user_images[message["username"]] = image_url  # Store the constructed image URL in the dictionary
 
     return render_template("user.html", username=username, user_info=user_info, image_url=image_url, user_posts=user_posts, user_images=user_images)
+
+
+@app.route("/edit_message/<int:message_id>", methods=["GET"])
+def edit_message(message_id):
+    if "id" not in session:
+        return redirect(url_for("login"))
+
+    # Fetch the message entity from the datastore
+    message_key = datastore_client.key("message", message_id)
+    message_entity = datastore_client.get(message_key)
+
+    if not message_entity:
+        return "Message not found", 404
+
+    # Render the "Edit Message" page with the original message data
+    return render_template("edit_message.html", message=message_entity, username=session["username"])
 
 
 @app.route("/change_password", methods=["POST"])

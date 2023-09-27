@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Edit Message</title>
+</head>
+<body>
+    <h1>Edit Message</h1>
+    <form method="POST" action="/edit_message">
+        <input type="hidden" name="message_id" value="{{ message.key.id }}">
+        
+        <label for="new_subject">New Subject:</label>
+        <input type="text" id="new_subject" name="new_subject" value="{{ message.subject }}" required><br>
+
+        <label for="new_message">New Message:</label>
+        <textarea id="new_message" name="new_message" rows="4" cols="50" required>{{ message.message }}</textarea><br>
+
+        <input type="submit" value="Update">
+    </form>
+    <div>
+        <a href="/user/{{ username }}">Back to User Page</a>
+    </div>
+</body>
+</html>

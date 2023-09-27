@@ -35,6 +35,9 @@
                 <img src="{{ user_images.get(message.username) }}" alt="User Image" width="60" height="60">
                 <p>Subject: {{ message.subject }}</p>
                 <p>{{ message.message }}</p>
+                
+                <!-- Add an Edit button with a link to edit the message -->
+                <a href="/edit_message/{{ message.key.id }}">Edit Message</a>
             </div>
             {% endfor %}
         </ul>
