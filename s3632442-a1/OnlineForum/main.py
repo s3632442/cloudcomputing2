@@ -336,10 +336,14 @@ def user(username):
     image_filename = f"{user_number}.png"
     image_url = f"https://storage.cloud.google.com/{bucket_name}/{image_filename}"
 
-    # Query the Datastore for the user's posts
+   # Query the Datastore for the user's posts, including message body
     query = datastore_client.query(kind="message")
     query.add_filter("username", "=", username)
-    user_posts = list(query.fetch)
+    user_posts = list(query.fetch())  # Use fetch() to get all user posts
+
+    # Debugging: Print the message body for each message
+    for message in user_posts:
+        print("Message Body:", message.get("user_message"))
 
     # Fetch user images for the user posts
     user_images = {}  # Initialize the user_images dictionary here

@@ -12,7 +12,8 @@
         <input type="text" id="new_subject" name="new_subject" value="{{ message.subject }}" required><br>
 
         <label for="new_message">New Message:</label>
-        <textarea id="new_message" name="new_message" rows="4" cols="50" required>{{ message.message }}</textarea><br>
+        <!-- Use message.user_message as the default value for the textarea -->
+        <textarea id="new_message" name="new_message" rows="4" cols="50" required>{{ message.user_message }}</textarea><br>
 
         <input type="submit" value="Update">
     </form>
