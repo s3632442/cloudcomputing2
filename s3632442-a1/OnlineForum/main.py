@@ -190,13 +190,13 @@ def forum():
 
         if "image" in request.files:
             image_file = request.files["image"]
-            # Modify the object name to include the virtual directory
-            image_reference = f"images/{session['username']}/{int(time.time())}.png" 
+            # Generate a unique image reference based on username and a timestamp
+            image_reference = f"{session['username']}/{int(time.time())}.png" 
             image_url = save_image(image_file, image_reference) 
         else:
             image_url = None
 
-        store_message(datastore_client, session["username"], subject, message_text, image_url)
+        store_message(datastore_client, session["username"], subject, message_text, image_url, image_reference)
 
     query = ds.query(kind="message", order=("-timestamp",))
 
@@ -206,11 +206,20 @@ def forum():
         user_message = message_entity.get("user_message", "Message content not found.")
         username = message_entity.get("username", "Unknown User")
         subject = message_entity.get("subject", "No Subject")
-        image_url = message_entity.get("image_url", None)
+        image_reference = message_entity.get("image_reference", None)
+
+        if image_reference:
+            if '_' in image_reference:
+                _, image_reference = image_reference.split('_', 1)  # Remove underscore and anything in front of it
+            # Construct the image URL using the image reference
+            image_url = f"https://storage.cloud.google.com/{bucket_name}/images/{image_reference}"
+        else:
+            image_url = None
 
         messages.append({"username": username, "subject": subject, "message": user_message, "image_url": image_url})
 
     return render_template("forum.html", id=session["id"], messages=messages, user_images=user_images)
+
 
 
 @app.route("/register", methods=["GET", "POST"])
@@ -361,7 +370,7 @@ def user(username):
     return render_template("user.html", username=username, user_info=user_info, image_url=image_url, user_posts=user_posts, user_images=user_images)
 
 
-def store_message(datastore_client, username, subject, message_text, image_file):
+def store_message(datastore_client, username, subject, message_text, image_file, image_reference):
     # Create an incomplete key with the kind 'message'
     key = datastore_client.key("message")
 
@@ -374,22 +383,21 @@ def store_message(datastore_client, username, subject, message_text, image_file)
             "timestamp": datetime.datetime.now(tz=datetime.timezone.utc),
             "username": username,
             "subject": subject,
+            "image_reference": image_reference,  # Store the image reference
         }
     )
 
     if image_file:
-        # Save the uploaded image with a unique reference in its title
-        image_reference = f"{username}_{int(time.time())}.png"
+        # Save the uploaded image with the provided image reference in its title
         save_image(image_file, image_reference)
-
-        entity["image_url"] = image_reference  # Store the image reference in the entity
 
     datastore_client.put(entity)
 
+
 def save_image(file, image_reference):
     if file and isinstance(file, FileStorage) and allowed_file(file.filename):
-        # Construct the object name with the "images" directory
-        object_name = f"{image_reference}"
+        # Construct the object name with the provided image reference
+        object_name = f"images/{image_reference}"
 
         # Upload the image to Google Cloud Storage
         bucket = storage_client.bucket(bucket_name)
@@ -401,6 +409,7 @@ def save_image(file, image_reference):
         return image_url
 
     return None
+
 
 
 
