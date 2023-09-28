@@ -1,0 +1,11 @@
+runtime: php74
+
+handlers:
+- url: /css
+  static_dir: css
+
+- url: /(.+\.php)$
+  script: \1
+
+- url: /.*
+  script: index.php
