@@ -526,7 +526,7 @@ def insert_initial_users():
 
     for i in range(10):
         user_id = f"s3632442{i + 20}"
-        username = f"Thomas{i} Lambert{i}"
+        username = f"Thomas Lambert{i}"
         
         # Generate the password using a loop
         password = "".join(str(j % 10) for j in range(i, i + 6))
@@ -554,7 +554,7 @@ def reset_users():
     # Insert ten new user entities
     for i in range(10):
         user_id = f"s3632442{i + 20}"
-        username = f"Thomas{i} Lambert{i}"
+        username = f"Thomas Lambert{i}"
         
         # Generate the password using a loop
         password = "".join(str(j % 10) for j in range(i, i + 6))
