@@ -15,7 +15,7 @@ app.secret_key = 'your_secret_key_here'
 
 datastore_client = datastore.Client()
 storage_client = storage.Client()
-bucket_name = 'exampleapp-398810.appspot.com'  # Replace with your bucket name
+bucket_name = 's3632442-a1-t1.appspot.com'  # Replace with your bucket name
 
 # Define the folder where uploaded images will be stored
 UPLOAD_FOLDER = 'uploads'
@@ -290,10 +290,10 @@ def validate_id_and_username(id, username):
 def store_registration_data(id, username, password, image_file):
     datastore_client = datastore.Client()
     storage_client = storage.Client()
-    bucket_name = 'exampleapp-398810.appspot.com'
+    bucket_name = 's3632442-a1-t1.appspot.com'
 
     filename = secure_filename(image_file.filename)
-    object_name = f"images/{filename}"
+    object_name = f"{filename}"
 
     bucket = storage_client.bucket(bucket_name)
     blob = bucket.blob(object_name)
@@ -556,36 +556,11 @@ def insert_initial_users():
         entity.update(entity_data)
         datastore_client.put(entity)
 
-def reset_users():
-    # Delete all entities from the 'user_data' kind
-    delete_all_entities("user_data")
-
-    # Insert ten new user entities
-    for i in range(10):
-        user_id = f"s3632442{i + 20}"
-        username = f"Thomas Lambert{i}"
-        
-        # Generate the password using a loop
-        password = "".join(str(j % 10) for j in range(i, i + 6))
-        
-        image_url = f"user{i}.jpg"
-        
-        entity_data = {
-            "id": user_id,
-            "username": username,
-            "password": password,
-            "image_url": image_url,
-        }
-
-        datastore_client.put(datastore.Entity(key=datastore_client.key("user_data"), **entity_data))
     
 def reset_users():
         delete_all_entities()  # Delete all existing entities
         insert_initial_users()  # Insert new entities with specific values
 
-if initialized == False:
-    reset_users()
-    initialized = False
 
 if __name__ == "__main__":
 
