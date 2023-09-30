@@ -32,7 +32,7 @@
             {% for message in user_posts %}
             <div>
                 <h3>{{ message.username }}</h3>
-                <img src="{{ user_images.get(message.username) }}" alt="User Image" width="60" height="60">
+                <img src="{{ forum_images.get(message.timestamp) }}" alt="User Image" width="60" height="60">
                 <p>Subject: {{ message.subject }}</p>
                 <p>{{ message.user_message }}</p>
                 

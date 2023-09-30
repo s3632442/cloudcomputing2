@@ -43,6 +43,7 @@ def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 def store_message(datastore_client, username, subject, message_text, image_url):
+    print("46 store_message Image URL:", image_url)
     # Create an incomplete key with the kind 'message'
     key = datastore_client.key("message")
 
@@ -79,6 +80,7 @@ def save_image(file, image_reference):
 
         # Return the public URL of the uploaded image
         image_url = blob.public_url
+        print("82 save image Image URL:", image_url)
         return image_url
 
     return None
@@ -193,6 +195,7 @@ def forum():
             # Generate a unique image reference based on username and a timestamp
             image_reference = f"{session['username']}/{int(time.time())}.png" 
             image_url = save_image(image_file, image_reference) 
+            print("197  forum  Image URL:", image_url)
         else:
             image_url = None
 
@@ -213,11 +216,12 @@ def forum():
                 _, image_reference = image_reference.split('_', 1)  # Remove underscore and anything in front of it
             # Construct the image URL using the image reference
             image_url = f"https://storage.cloud.google.com/{bucket_name}/images/{image_reference}"
+            print("219 route Image URL:", image_url)
         else:
             image_url = None
 
         messages.append({"username": username, "subject": subject, "message": user_message, "image_url": image_url})
-
+    print("224 forum Image URL:", image_url)
     return render_template("forum.html", id=session["id"], messages=messages, user_images=user_images)
 
 
@@ -342,6 +346,7 @@ def user(username):
     # Construct the image URL based on the extracted number
     image_filename = f"{user_number}.png"
     image_url = f"https://storage.cloud.google.com/{bucket_name}/{image_filename}"
+    print("349 route Image URL:", image_url)
 
    # Query the Datastore for the user's posts, including message body
     query = datastore_client.query(kind="message")
@@ -354,6 +359,7 @@ def user(username):
 
     # Fetch user images for the user posts
     user_images = {}  # Initialize the user_images dictionary here
+    forum_images = {}  # Initialize the user_images dictionary here
 
     for message in user_posts:
         if message["username"]:
@@ -363,11 +369,22 @@ def user(username):
 
             # Construct the image URL based on the extracted number
             image_filename = f"{user_number}.png"
-            image_url = f"https://storage.cloud.google.com/{bucket_name}/{image_filename}"
+            user_image_url = f"https://storage.cloud.google.com/{bucket_name}/{image_filename}"
+            print("372 user Image URL:", image_url)
+            user_images[message["username"]] = user_image_url  # Store the constructed image URL in the dictionary
+            
+            image_reference = message["image_reference"]
+            print("377 forum Image URL:", image_reference)
+            timestamp = message["timestamp"]
+            print("377 forum Image URL:", image_reference)
+            print("380 forum Image URL:", timestamp)
 
-            user_images[message["username"]] = image_url  # Store the constructed image URL in the dictionary
+            # Construct the image URL based on the extracted number
+            forum_image_url = f"https://storage.cloud.google.com/{bucket_name}/images/{image_reference}"
+            print("384 forum Image URL:", image_url)
+            forum_images[message["timestamp"]] = forum_image_url  # Store the constructed image URL in the dictionary
 
-    return render_template("user.html", username=username, user_info=user_info, image_url=image_url, user_posts=user_posts, user_images=user_images)
+    return render_template("user.html", username=username, user_info=user_info, image_url=image_url, user_posts=user_posts,  forum_images=forum_images)
 
 
 def store_message(datastore_client, username, subject, message_text, image_file, image_reference):
@@ -406,6 +423,7 @@ def save_image(file, image_reference):
 
         # Return the public URL of the uploaded image
         image_url = blob.public_url
+        print("414 save_image Image URL:", image_url)
         return image_url
 
     return None
@@ -466,6 +484,7 @@ def change_password():
         user_number = re.search(r'\d+$', session["username"]).group(0)
         image_filename = f"{user_number}.png"
         image_url = f"https://storage.cloud.google.com/{bucket_name}/{image_filename}"
+        print("475 change password Image URL:", image_url)
         return render_template("user.html", username=session["username"], image_url=image_url, message="The old password is incorrect.")
 
     # Update the password in the datastore
