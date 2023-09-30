@@ -84,9 +84,9 @@ require __DIR__ . '/vendor/autoload.php';
 <div class='content'>
     <div class="tab-container">
         <!-- Tab links -->
-        <div class="tab-link" data-tab-id="tab1">Show top 10 time slots with the highest trade value</div>
-        <div class="tab-link" data-tab-id="tab2">25 services with the highest total trade surplus value</div>
-        <div class="tab-link" data-tab-id="tab3">Show top 25 services with the highest total trade surplus value</div>
+        <div class="tab-link" data-tab-id="tab1">Top 10 time slots with the highest trade value</div>
+        <div class="tab-link" data-tab-id="tab2">Top 40 countries with the highest total trade deficit value</div>
+        <div class="tab-link" data-tab-id="tab3">Top 25 services with the highest total trade surplus value</div>
     </div>
     
 	<div class="table-container"> <!-- Added a container for the table -->
@@ -232,55 +232,77 @@ require __DIR__ . '/vendor/autoload.php';
 			$client = new BigQueryClient([
 				'projectId' => $projectId,
 			]);
-			$query = "WITH TopTimeSlots AS (
-				-- Retrieve the top 10 time slots from GS Quarterly Sept 20
-				SELECT
-					`Time Ref` AS time_ref
-				FROM
-					`s3632442-a1.a1.GS Quarterly Sept 20`
-				GROUP BY
-					`Time Ref`
-				ORDER BY
-					SUM(CASE WHEN Status = 'F' THEN Value ELSE 0 END) DESC
-				LIMIT
-					10
-			),
-			
-			TopCountries AS (
-				-- Retrieve the top 40 countries from Country Classification
-				SELECT
-					`Country Code` AS Country_Code
-				FROM
-					`s3632442-a1.a1.Country Classification`
-				LIMIT
-					40
-			)
-			
-			-- Join the results with the Services Classification table to get service names
-			SELECT
-				sc.`Service Label` AS service_label,
-				SUM(CASE WHEN gsq.`Product Type` = 'Exports' THEN gsq.Value ELSE 0 END) -
-				SUM(CASE WHEN gsq.`Product Type` = 'Imports' THEN gsq.Value ELSE 0 END) AS trade_surplus_value
+			$query = "WITH ImportData AS (
+    SELECT
+        `Time Ref` AS time_ref,
+        `Coutnry Code` AS country_code,
+        `Code` AS service_code,
+        SUM(Value) AS import_value
 			FROM
-				`s3632442-a1.a1.GS Quarterly Sept 20` AS gsq
-			JOIN
-				`s3632442-a1.a1.Services Classification` AS sc
-			ON
-				gsq.Code = sc.Code
-			JOIN
-				TopTimeSlots AS tts
-			ON
-				gsq.`Time Ref` = tts.time_ref
-			JOIN
-				TopCountries AS tc
-			ON
-				gsq.`Coutnry Code` = tc.Country_Code
+				`s3632442-a1.a1.GS Quarterly Sept 20`
+			WHERE
+				Value IS NOT NULL
+				AND Account = 'Imports'
+				AND `Time Ref` BETWEEN 201301 AND 201512 -- Filter for 2013 to 2015
+				AND `Product Type`= 'Services'
 			GROUP BY
-				sc.`Service Label`
-			ORDER BY
-				trade_surplus_value DESC
-			LIMIT
-				25;";
+				time_ref, country_code, service_code
+		),
+		ExportData AS (
+			SELECT
+				`Time Ref` AS time_ref,
+				`Coutnry Code` AS country_code,
+				`Product Type` AS product_type,
+				`Code` AS service_code,
+				SUM(Value) AS export_value
+			FROM
+				`s3632442-a1.a1.GS Quarterly Sept 20`
+			WHERE
+				Value IS NOT NULL
+				AND Account = 'Exports'
+				AND `Time Ref` BETWEEN 201301 AND 201512 -- Filter for 2013 to 2015
+				AND `Product Type` = 'Services'
+			GROUP BY
+				time_ref, country_code, product_type, service_code
+		),
+		TradeSurplus AS (
+			SELECT
+				i.time_ref,
+				c.`Country Label` AS country_label,
+				'Services' AS product_type,
+				i.service_code,
+				(e.export_value - i.import_value) AS trade_surplus_value,
+				'F' AS status
+			FROM
+				ImportData i
+			LEFT JOIN
+				ExportData e
+			ON
+				i.time_ref = e.time_ref
+				AND i.country_code = e.country_code
+			LEFT JOIN
+				`s3632442-a1.a1.Country Classification` AS c
+			ON
+				i.country_code = c.`Country Code`
+			WHERE
+				e.export_value IS NOT NULL
+				AND c.`Country Label` <> 'Total' -- Exclude Total country labels
+		)
+		SELECT
+			ts.service_code,
+			sc.`Service Label` AS service_label,
+			trade_surplus_value
+		FROM
+			TradeSurplus ts
+		JOIN
+			`s3632442-a1.a1.Services Classification` AS sc
+		ON
+			ts.service_code = sc.`Code`
+		ORDER BY
+			trade_surplus_value DESC
+		LIMIT
+			25;
+		";
 			$queryJobConfig = $client->query($query);
 			$queryResults = $client->runQuery($queryJobConfig);
 
