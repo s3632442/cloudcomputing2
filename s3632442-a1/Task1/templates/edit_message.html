@@ -5,7 +5,7 @@
 </head>
 <body>
     <h1>Edit Message</h1>
-    <form method="POST" action="/edit_message/{{ message.key.id }}">
+    <form method="POST" action="/edit_message/{{ message.key.id }}" enctype="multipart/form-data">
         <input type="hidden" name="message_id" value="{{ message.key.id }}">
         
         <label for="new_subject">New Subject:</label>
@@ -14,6 +14,13 @@
         <label for="new_message">New Message:</label>
         <!-- Use message.user_message as the default value for the textarea -->
         <textarea id="new_message" name="new_message" rows="4" cols="50" required>{{ message.user_message }}</textarea><br>
+
+        <!-- Display the message image if it exists -->
+        <img src="{{ image_url }}" alt="Message Image" style="max-width: 400px; max-height: 400px;"><br>
+
+        <!-- Add a file input field for uploading a new image -->
+        <label for="new_image">Upload New Image (Optional):</label>
+        <input type="file" id="new_image" name="new_image" accept=".png, .jpg, .jpeg, .gif"><br>
 
         <input type="submit" value="Update">
     </form>

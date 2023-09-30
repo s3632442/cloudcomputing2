@@ -43,7 +43,6 @@ def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 def store_message(datastore_client, username, subject, message_text, image_url):
-    print("46 store_message Image URL:", image_url)
     # Create an incomplete key with the kind 'message'
     key = datastore_client.key("message")
 
@@ -80,7 +79,6 @@ def save_image(file, image_reference):
 
         # Return the public URL of the uploaded image
         image_url = blob.public_url
-        print("82 save image Image URL:", image_url)
         return image_url
 
     return None
@@ -142,7 +140,6 @@ def login():
         if not user_entity:
             # ID or password is incorrect (generic error message)
             error_message = "ID or password is incorrect. Please try again."
-            print("User not found. ID:", id, "Password:", password)  # Debugging statement
         else:
             stored_password = user_entity.get("password")
 
@@ -150,12 +147,10 @@ def login():
             if password == stored_password:
                 session["id"] = id  # Store the authenticated ID in the session
                 session["username"] = user_entity.get("username")  # Store the authenticated username in the session
-                print("User successfully logged in. ID:", session["id"], "Username:", session["username"])  # Debugging statement
                 return redirect(url_for("forum"))
 
             # If the password is incorrect (generic error message)
             error_message = "ID or password is incorrect. Please try again."
-            print("Password incorrect for user with ID:", id)  # Debugging statement
 
     return render_template("login.html", error_message=error_message, user_credentials=user_credentials)
 
@@ -195,7 +190,6 @@ def forum():
             # Generate a unique image reference based on username and a timestamp
             image_reference = f"{session['username']}/{int(time.time())}.png" 
             image_url = save_image(image_file, image_reference) 
-            print("197  forum  Image URL:", image_url)
         else:
             image_url = None
 
@@ -216,12 +210,10 @@ def forum():
                 _, image_reference = image_reference.split('_', 1)  # Remove underscore and anything in front of it
             # Construct the image URL using the image reference
             image_url = f"https://storage.cloud.google.com/{bucket_name}/images/{image_reference}"
-            print("219 route Image URL:", image_url)
         else:
             image_url = None
 
         messages.append({"username": username, "subject": subject, "message": user_message, "image_url": image_url})
-    print("224 forum Image URL:", image_url)
     return render_template("forum.html", id=session["id"], messages=messages, user_images=user_images)
 
 
@@ -346,16 +338,12 @@ def user(username):
     # Construct the image URL based on the extracted number
     image_filename = f"{user_number}.png"
     image_url = f"https://storage.cloud.google.com/{bucket_name}/{image_filename}"
-    print("349 route Image URL:", image_url)
 
    # Query the Datastore for the user's posts, including message body
     query = datastore_client.query(kind="message")
     query.add_filter("username", "=", username)
     user_posts = list(query.fetch())  # Use fetch() to get all user posts
 
-    # Debugging: Print the message body for each message
-    for message in user_posts:
-        print("Message Body:", message.get("user_message"))
 
     # Fetch user images for the user posts
     user_images = {}  # Initialize the user_images dictionary here
@@ -370,18 +358,12 @@ def user(username):
             # Construct the image URL based on the extracted number
             image_filename = f"{user_number}.png"
             user_image_url = f"https://storage.cloud.google.com/{bucket_name}/{image_filename}"
-            print("372 user Image URL:", image_url)
             user_images[message["username"]] = user_image_url  # Store the constructed image URL in the dictionary
             
             image_reference = message["image_reference"]
-            print("377 forum Image URL:", image_reference)
-            timestamp = message["timestamp"]
-            print("377 forum Image URL:", image_reference)
-            print("380 forum Image URL:", timestamp)
 
             # Construct the image URL based on the extracted number
             forum_image_url = f"https://storage.cloud.google.com/{bucket_name}/images/{image_reference}"
-            print("384 forum Image URL:", image_url)
             forum_images[message["timestamp"]] = forum_image_url  # Store the constructed image URL in the dictionary
 
     return render_template("user.html", username=username, user_info=user_info, image_url=image_url, user_posts=user_posts,  forum_images=forum_images)
@@ -423,13 +405,14 @@ def save_image(file, image_reference):
 
         # Return the public URL of the uploaded image
         image_url = blob.public_url
-        print("414 save_image Image URL:", image_url)
         return image_url
 
     return None
 
 
 
+
+from werkzeug.utils import secure_filename
 
 @app.route("/edit_message/<int:message_id>", methods=["GET", "POST"])
 def edit_message(message_id):
@@ -447,6 +430,20 @@ def edit_message(message_id):
         # Get the new subject and message content from the form
         new_subject = request.form["new_subject"]
         new_message = request.form["new_message"]
+        
+        # Check if a new image was uploaded
+        if "new_image" in request.files:
+            new_image_file = request.files["new_image"]
+
+            if new_image_file and allowed_file(new_image_file.filename):
+                # Generate a unique image reference based on username and a timestamp
+                new_image_reference = f"{session['username']}/{int(time.time())}.png"
+                
+                # Update the message entity with the new image reference
+                message_entity["image_reference"] = new_image_reference
+                
+                # Save the new uploaded image with the provided image reference
+                save_image(new_image_file, new_image_reference)
 
         # Update the message entity with the new subject and message content
         message_entity["subject"] = new_subject
@@ -456,8 +453,20 @@ def edit_message(message_id):
         # Redirect to the forum page after updating the message
         return redirect(url_for("forum"))
 
-    # Render the "Edit Message" page with the original message data
-    return render_template("edit_message.html", message=message_entity, username=session["username"])
+    # Pass the image URL to the template
+    image_url = get_message_image_url(message_entity)
+    
+    return render_template("edit_message.html", message=message_entity, username=session["username"], image_url=image_url)
+
+
+def get_message_image_url(message_entity):
+    image_reference = message_entity.get("image_reference")
+    if image_reference:
+        # Construct the image URL using the image reference
+        image_url = f"https://storage.cloud.google.com/{bucket_name}/images/{image_reference}"
+        return image_url
+    return None
+
 
 
 
@@ -484,7 +493,6 @@ def change_password():
         user_number = re.search(r'\d+$', session["username"]).group(0)
         image_filename = f"{user_number}.png"
         image_url = f"https://storage.cloud.google.com/{bucket_name}/{image_filename}"
-        print("475 change password Image URL:", image_url)
         return render_template("user.html", username=session["username"], image_url=image_url, message="The old password is incorrect.")
 
     # Update the password in the datastore
