@@ -307,9 +307,11 @@ def store_registration_data(id, username, password, image_file):
         "username": username,
         "password": password,
         "image_url": image_url,
+        "image_reference": filename,  # Store the image reference
     })
 
     datastore_client.put(entity)
+
 
 @app.route("/logout")
 def logout():
@@ -339,11 +341,17 @@ def user(username):
     image_filename = f"{user_number}.png"
     image_url = f"https://storage.cloud.google.com/{bucket_name}/{image_filename}"
 
-   # Query the Datastore for the user's posts, including message body
+    # Retrieve the image reference from the user entity
+    image_reference = user_entity.get("image_reference")
+
+    if image_reference:
+        # Construct the image URL using the image reference
+        image_url = f"https://storage.cloud.google.com/{bucket_name}/images/{image_reference}"
+
+    # Query the Datastore for the user's posts, including message body
     query = datastore_client.query(kind="message")
     query.add_filter("username", "=", username)
     user_posts = list(query.fetch())  # Use fetch() to get all user posts
-
 
     # Fetch user images for the user posts
     user_images = {}  # Initialize the user_images dictionary here
@@ -359,7 +367,7 @@ def user(username):
             image_filename = f"{user_number}.png"
             user_image_url = f"https://storage.cloud.google.com/{bucket_name}/{image_filename}"
             user_images[message["username"]] = user_image_url  # Store the constructed image URL in the dictionary
-            
+
             image_reference = message["image_reference"]
 
             # Construct the image URL based on the extracted number
@@ -367,6 +375,7 @@ def user(username):
             forum_images[message["timestamp"]] = forum_image_url  # Store the constructed image URL in the dictionary
 
     return render_template("user.html", username=username, user_info=user_info, image_url=image_url, user_posts=user_posts,  forum_images=forum_images)
+
 
 
 def store_message(datastore_client, username, subject, message_text, image_file, image_reference):
