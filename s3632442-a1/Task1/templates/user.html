@@ -7,7 +7,7 @@
     <h1>User Page</h1>
     <div>
         <h2>Welcome, {{ username }}</h2>
-        <img src="{{ image_url }}" alt="User Image">
+        <img src="{{ image_url }}" alt="User Image"  width="120" height="120">
     </div>
     <div>
         <form method="POST" action="/change_password">
@@ -32,7 +32,7 @@
             {% for message in user_posts %}
             <div>
                 <h3>{{ message.username }}</h3>
-                <img src="{{ forum_images.get(message.timestamp) }}" alt="User Image" width="60" height="60">
+                <img src="{{ forum_images.get(message.timestamp) }}" alt="User Image" style="max-width: 120px; max-height: 120px;">
                 <p>Subject: {{ message.subject }}</p>
                 <p>{{ message.user_message }}</p>
                 

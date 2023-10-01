@@ -1,8 +1,8 @@
 from werkzeug.datastructures import FileStorage
 import time
+import uuid  # Import the uuid module
 import datetime
 import socket
-import os
 import re
 from flask import Flask, request, render_template, redirect, url_for, session
 from google.cloud import datastore
@@ -216,7 +216,19 @@ def forum():
         messages.append({"username": username, "subject": subject, "message": user_message, "image_url": image_url})
     return render_template("forum.html", id=session["id"], messages=messages, user_images=user_images)
 
+def validate_id_and_username(id, username):
+    if not id or not username:
+        return False
 
+    if not re.match(r'^[a-zA-Z0-9_-]+$', id) or not re.match(r'^[a-zA-Z0-9_-]+$', username):
+        return False
+
+    datastore_client = datastore.Client()
+    query = datastore_client.query(kind="user_data")
+    query.add_filter("id", "=", id)
+    query.add_filter("username", "=", username)
+    result = list(query.fetch())
+    return not bool(result)
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
@@ -273,27 +285,15 @@ def validate_username_exists(username):
     # If there are no results, the username is unique and valid
     return bool(result)  # True if username exists, False otherwise
 
-def validate_id_and_username(id, username):
-    if not id or not username:
-        return False
-
-    if not re.match(r'^[a-zA-Z0-9_-]+$', id) or not re.match(r'^[a-zA-Z0-9_-]+$', username):
-        return False
-
-    datastore_client = datastore.Client()
-    query = datastore_client.query(kind="user_data")
-    query.add_filter("id", "=", id)
-    query.add_filter("username", "=", username)
-    result = list(query.fetch())
-    return not bool(result)
-
 def store_registration_data(id, username, password, image_file):
     datastore_client = datastore.Client()
     storage_client = storage.Client()
     bucket_name = 's3632442-a1-t1.appspot.com'
 
-    filename = secure_filename(image_file.filename)
-    object_name = f"{filename}"
+    # Generate a UUID as the filename for the uploaded image
+    unique_filename = str(uuid.uuid4()) + secure_filename(image_file.filename)
+
+    object_name = unique_filename  # Use the UUID as the object name
 
     bucket = storage_client.bucket(bucket_name)
     blob = bucket.blob(object_name)
@@ -307,11 +307,10 @@ def store_registration_data(id, username, password, image_file):
         "username": username,
         "password": password,
         "image_url": image_url,
-        "image_reference": filename,  # Store the image reference
+        "image_reference": unique_filename,  # Store the unique filename as the image reference
     })
 
     datastore_client.put(entity)
-
 
 @app.route("/logout")
 def logout():
@@ -529,7 +528,7 @@ def insert_initial_users():
     new_entities = []
 
     for i in range(10):
-        user_id = f"s3632442{i + 20}"
+        user_id = f"s3632442{i}"
         username = f"Thomas Lambert{i}"
         
         # Generate the password using a loop
@@ -564,8 +563,9 @@ def reset_users():
         delete_all_entities()  # Delete all existing entities
         insert_initial_users()  # Insert new entities with specific values
 
+reset_users()
 
 if __name__ == "__main__":
-
+    
     app.run(host="127.0.0.1", port=8080, debug=True)
 
