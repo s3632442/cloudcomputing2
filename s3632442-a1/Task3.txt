@@ -18,3 +18,6 @@ profile configuration, product profile configuration each with its own ui interf
 
 Realistically I would be happy to at least be able to match some mock users to some mock products and brands based on data drawn from a 
 third party api and would like to focus more on the setup of a Continuous Delivery Continuous Deployment pipeline.
+
+I wrote this prior to having completed Task 1 and 2 and it is now a serious consideration to complete this using python and flask just because for very basic 
+stuff it is easy to get the key requirements without focussing too much on ui
