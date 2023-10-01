@@ -335,7 +335,12 @@ def user(username):
     }
 
     # Extract the number at the end of the username
-    user_number = re.search(r'\d+$', username).group(0)
+    user_number_match = re.search(r'\d+$', username)
+    if user_number_match:
+        user_number = user_number_match.group(0)
+    else:
+        user_number = ""  # Or assign some default value if needed
+
 
     # Construct the image URL based on the extracted number
     image_filename = f"{user_number}.png"
@@ -346,7 +351,7 @@ def user(username):
 
     if image_reference:
         # Construct the image URL using the image reference
-        image_url = f"https://storage.cloud.google.com/{bucket_name}/images/{image_reference}"
+        image_url = f"https://storage.cloud.google.com/{bucket_name}/{image_reference}"
 
     # Query the Datastore for the user's posts, including message body
     query = datastore_client.query(kind="message")
@@ -512,16 +517,6 @@ def change_password():
     return redirect(url_for("user", username=session["username"]))
 
 
-@app.route("/reset_datastore")
-def reset_datastore():
-    # Delete all entities from the 'user_data' kind
-    delete_all_entities("user_data")
-
-    # Insert the new entities
-    insert_initial_users()
-
-    return "Datastore reset successfully."
-
 def delete_all_entities():
     query = datastore_client.query(kind="user_data")
     entities = list(query.fetch())
@@ -542,19 +537,27 @@ def insert_initial_users():
         
         image_url = f"user{i}.jpg"
         
-        entity_data = {
-            "id": user_id,
-            "username": username,
-            "password": password,
-            "image_url": image_url,
-        }
+        # Check if an entity with the same id already exists
+        query = datastore_client.query(kind="user_data")
+        query.add_filter("id", "=", user_id)
+        existing_entities = list(query.fetch(limit=1))
 
-        new_entities.append(entity_data)
+        # If no existing entity with the same id, insert the new entity
+        if not existing_entities:
+            entity_data = {
+                "id": user_id,
+                "username": username,
+                "password": password,
+                "image_url": image_url,
+            }
+    
+            new_entities.append(entity_data)
 
     for entity_data in new_entities:
         entity = datastore.Entity(key=datastore_client.key("user_data"))
         entity.update(entity_data)
         datastore_client.put(entity)
+
 
     
 def reset_users():
