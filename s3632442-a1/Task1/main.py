@@ -83,48 +83,9 @@ def save_image(file, image_reference):
 
     return None
 
-
-# @app.route("/", methods=["GET", "POST"])
-# def login():
-#     error_message = ""
-
-#     if request.method == "POST":
-#         username = request.form["username"]
-#         password = request.form["password"]
-#         id = request.form["id"]
-
-#         # Check if the provided username and ID exist in the user_data entity kind
-#         query = datastore_client.query(kind="user_data")
-#         query.add_filter("username", "=", username)
-#         query.add_filter("id", "=", id)
-#         user_entities = query.fetch(limit=1)  # Use limit to fetch a single result
-
-#         user_entity = next(user_entities, None)  # Get the first result or None if not found
-
-#         if not user_entity:
-#             # Username, ID, or password is incorrect (generic error message)
-#             error_message = "Username, ID, or password is incorrect. Please try again."
-#         else:
-#             stored_password = user_entity.get("password")
-
-#             # Check if the provided password matches the stored password
-#             if password == stored_password:
-#                 session["username"] = username
-#                 return redirect(url_for("forum"))
-
-#             # If the password is incorrect (generic error message)
-#             error_message = "Username, ID, or password is incorrect. Please try again."
-
-#     return render_template("login.html", error_message=error_message)
-
-
-#####################################################
 @app.route("/", methods=["GET", "POST"])
 def login():
     error_message = ""
-
-    # Fetch all user credentials for debugging (remove this in production)
-    user_credentials = fetch_all_user_credentials()
 
     if request.method == "POST":
         id = request.form["id"]
@@ -139,7 +100,7 @@ def login():
 
         if not user_entity:
             # ID or password is incorrect (generic error message)
-            error_message = "ID or password is incorrect. Please try again."
+            error_message = "ID or password is invalid. Please try again."
         else:
             stored_password = user_entity.get("password")
 
@@ -150,9 +111,10 @@ def login():
                 return redirect(url_for("forum"))
 
             # If the password is incorrect (generic error message)
-            error_message = "ID or password is incorrect. Please try again."
+            error_message = "ID or password is invalid. Please try again."
 
-    return render_template("login.html", error_message=error_message, user_credentials=user_credentials)
+    return render_template("login.html", error_message=error_message)
+
 
 
 
@@ -251,21 +213,39 @@ def register():
                 password_error = "Password is required."
         else:
             username_exists = validate_username_exists(username)
+            id_exists = validate_id_exists(id)
+
             if username_exists:
                 username_error = "Username already exists. Please choose a different username."
 
+            if id_exists:
+                id_error = "ID already exists. Please choose a different ID."
+
             password_requirements = validate_password_requirements(password)
+            
             if not password_requirements:
                 password_error = "Password must contain at least one letter, one number, one capital letter, and one special character."
 
-            if not username_error and not password_error:
-                if validate_id_and_username(id, username):
-                    store_registration_data(id, username, password, image_file)
-                    return render_template("registration_successful.html")
-                else:
-                    return render_template("invalid_id_username.html")
+            if not username_error and not password_error and not id_error:
+                store_registration_data(id, username, password, image_file)
+                return render_template("registration_successful.html")
 
     return render_template("register.html", id_error=id_error, username_error=username_error, password_error=password_error)
+
+
+def validate_id_exists(id):
+    # Initialize the Datastore client
+    datastore_client = datastore.Client()
+
+    # Query the Datastore to check if the ID already exists
+    query = datastore_client.query(kind="user_data")
+    query.add_filter("id", "=", id)
+
+    # Execute the query and check if any results are returned
+    result = list(query.fetch())
+
+    # If there are no results, the ID is unique and valid
+    return bool(result)  # True if ID exists, False otherwise
 
 def validate_password_requirements(password):
     # Password must contain at least one letter, one number, one capital letter, and one special character.
