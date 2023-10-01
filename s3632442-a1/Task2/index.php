@@ -96,16 +96,16 @@ require __DIR__ . '/vendor/autoload.php';
 			// Your PHP code for Tab 1 results
 			use Google\Cloud\BigQuery\BigQueryClient;
 
-			$projectId = 's3632442-a1';
+			$projectId = 's3632442-a1-t2';
 			$client = new BigQueryClient([
 				'projectId' => $projectId,
 			]);
 			$query = "WITH TimeSlots AS (
 				SELECT
-				SUBSTR(CAST(`Time Ref` AS STRING), 1, 6) AS time_slot,
-				SUM(Value) AS trade_value
+				SUBSTR(CAST(`time_ref` AS STRING), 1, 6) AS time_slot,
+				SUM(value) AS trade_value
 				FROM
-				`s3632442-a1.a1.GS Quarterly Sept 20`
+				`s3632442-a1-t2.a1.gs_quarterly_sept_20`
 				GROUP BY
 				time_slot
 			)
@@ -156,25 +156,25 @@ require __DIR__ . '/vendor/autoload.php';
 			// Your PHP code for Tab 2 results
 			
 
-			$projectId = 's3632442-a1';
+			$projectId = 's3632442-a1-t2';
 			$client = new BigQueryClient([
 				'projectId' => $projectId,
 			]);
 			$query = "WITH TradeDeficit AS (
 				SELECT
-				c.`Country Label` AS country_label,
-				g.`Product Type` AS product_type,
-				SUM(CASE WHEN g.`Product Type` = 'Imports' THEN g.Value ELSE -g.Value END) AS trade_deficit_value,
-				g.Status AS status
+				c.country_label,
+				g.`product_type` AS product_type,
+				SUM(CASE WHEN g.`product_type` = 'Imports' THEN g.value ELSE -g.value END) AS trade_deficit_value,
+				g.status AS status
 				FROM
-				`s3632442-a1.a1.GS Quarterly Sept 20` AS g
+				`s3632442-a1-t2.a1.gs_quarterly_sept_20` AS g
 				JOIN
-				`s3632442-a1.a1.Country Classification` AS c
+				`s3632442-a1-t2.a1.country_classification` AS c
 				ON
-				g.`Coutnry Code` = c.`Country Code`
+				g.`country_code` = c.`country_code`
 				WHERE
-				g.`Time Ref` BETWEEN 201301 AND 201512 -- Filter for 2013 to 2015
-				AND g.Status = 'F' -- Filter for status 'F'
+				g.`time_ref` BETWEEN 201301 AND 201512 -- Filter for 2013 to 2015
+				AND g.status = 'F' -- Filter for status 'F'
 				GROUP BY
 				country_label, product_type, status
 			)
@@ -198,7 +198,7 @@ require __DIR__ . '/vendor/autoload.php';
 			$str = "<table>".
 			"<tr>" .
 			"<th>Country Label</th>" .
-			"<th>Product Type</th>" .
+			"<th>product_type</th>" .
 			"<th>Trade Deficit Value</th>" .
 			"<th>Status</th>" .
 			"</tr>";
@@ -228,80 +228,79 @@ require __DIR__ . '/vendor/autoload.php';
 		<div id="tab3" class="tab">
 		<?php
 			// Your PHP code for Tab 3 results
-			$projectId = 's3632442-a1';
+			$projectId = 's3632442-a1-t2';
 			$client = new BigQueryClient([
 				'projectId' => $projectId,
 			]);
 			$query = "WITH ImportData AS (
-    SELECT
-        `Time Ref` AS time_ref,
-        `Coutnry Code` AS country_code,
-        `Code` AS service_code,
-        SUM(Value) AS import_value
-			FROM
-				`s3632442-a1.a1.GS Quarterly Sept 20`
-			WHERE
-				Value IS NOT NULL
-				AND Account = 'Imports'
-				AND `Time Ref` BETWEEN 201301 AND 201512 -- Filter for 2013 to 2015
-				AND `Product Type`= 'Services'
-			GROUP BY
-				time_ref, country_code, service_code
-		),
-		ExportData AS (
-			SELECT
-				`Time Ref` AS time_ref,
-				`Coutnry Code` AS country_code,
-				`Product Type` AS product_type,
-				`Code` AS service_code,
-				SUM(Value) AS export_value
-			FROM
-				`s3632442-a1.a1.GS Quarterly Sept 20`
-			WHERE
-				Value IS NOT NULL
-				AND Account = 'Exports'
-				AND `Time Ref` BETWEEN 201301 AND 201512 -- Filter for 2013 to 2015
-				AND `Product Type` = 'Services'
-			GROUP BY
-				time_ref, country_code, product_type, service_code
-		),
-		TradeSurplus AS (
-			SELECT
-				i.time_ref,
-				c.`Country Label` AS country_label,
-				'Services' AS product_type,
-				i.service_code,
-				(e.export_value - i.import_value) AS trade_surplus_value,
-				'F' AS status
-			FROM
-				ImportData i
-			LEFT JOIN
-				ExportData e
-			ON
-				i.time_ref = e.time_ref
-				AND i.country_code = e.country_code
-			LEFT JOIN
-				`s3632442-a1.a1.Country Classification` AS c
-			ON
-				i.country_code = c.`Country Code`
-			WHERE
-				e.export_value IS NOT NULL
-				AND c.`Country Label` <> 'Total' -- Exclude Total country labels
-		)
-		SELECT
-			ts.service_code,
-			sc.`Service Label` AS service_label,
-			trade_surplus_value
-		FROM
-			TradeSurplus ts
-		JOIN
-			`s3632442-a1.a1.Services Classification` AS sc
-		ON
-			ts.service_code = sc.`Code`
-		ORDER BY
-			trade_surplus_value DESC
-		LIMIT
-			25;
+				SELECT
+					`time_ref` AS time_ref,
+					`country_code` AS country_code,
+					`service_code` AS service_code,
+					SUM(value) AS import_value
+						FROM
+							`s3632442-a1-t2.a1.gs_quarterly_sept_20`
+						WHERE
+							value IS NOT NULL
+							AND account = 'Imports'
+							AND `time_ref` BETWEEN 201301 AND 201512 -- Filter for 2013 to 2015
+							AND `product_type`= 'Services'
+						GROUP BY
+							time_ref, country_code, service_code
+					),
+					ExportData AS (
+						SELECT
+							`time_ref` AS time_ref,
+							`country_code` AS country_code,
+							`product_type` AS product_type,
+							`service_code` AS service_code,
+							SUM(value) AS export_value
+						FROM
+							`s3632442-a1-t2.a1.gs_quarterly_sept_20`
+						WHERE
+							value IS NOT NULL
+							AND account = 'Exports'
+							AND `time_ref` BETWEEN 201301 AND 201512 -- Filter for 2013 to 2015
+							AND `product_type` = 'Services'
+						GROUP BY
+							time_ref, country_code, product_type, service_code
+					),
+					TradeSurplus AS (
+						SELECT
+							i.time_ref,
+							c.country_label AS country_label,
+							'Services' AS product_type,
+							i.service_code,
+							(e.export_value - i.import_value) AS trade_surplus_value,
+							'F' AS status
+						FROM
+							ImportData i
+						LEFT JOIN
+							ExportData e
+						ON
+							i.time_ref = e.time_ref
+							AND i.country_code = e.country_code
+						LEFT JOIN
+							`s3632442-a1-t2.a1.country_classification` AS c
+						ON
+							i.country_code = c.`country_code`
+						WHERE
+							e.export_value IS NOT NULL
+							AND c.country_label <> 'Total' -- Exclude Total country labels
+					)
+					SELECT
+						sc.`service_label` AS service_label,
+						trade_surplus_value
+					FROM
+						TradeSurplus ts
+					JOIN
+						`s3632442-a1-t2.a1.service_classification` AS sc
+					ON
+						ts.service_code = sc.`service_code`
+					ORDER BY
+						trade_surplus_value DESC
+					LIMIT
+						25;
 		";
 			$queryJobConfig = $client->query($query);
 			$queryResults = $client->runQuery($queryJobConfig);

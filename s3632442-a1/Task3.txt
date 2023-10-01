@@ -1,0 +1,20 @@
+Thomas Lambert s3632442
+
+My motivation for A3 is to create a platform that helps users filter products according to their ethical orientation. 
+The objective is to reduce the amount of research involved in an individual consumer's pursuit of spending habits 
+that align with their ethical ideals and to enable users to help shape the world by voting with their wallets. 
+The system components required will be db storage, scalable application hosting, load balancing, regional hosting redundancy.
+
+I will probably write the application using Nodejs thus ideally I will use Elastic Beanstalk for app hosting, Amazon 
+ElastiCache for rapid data resolution, S3 instances will be used for artefact hosting, Route 53 will do the routing for 
+the api, serving, DNS resolution and github actions will be used to CICD integration. Ideally the API would be written using .NET core, hot chocolate, and graphQL. 
+
+However, achieving a token amount of this to any level of proficiency or even to a basic level of functionality on my own 
+seems like an enormous effort. Hence I will probably just have all computation performed on the front end within the local app instance 
+which will query an Elastic Beanstalk instance using Amazon Relational Data Storage instance and and S3 instance.
+
+There is the need for db storage for product information, user information, search functionality, comprehensive customer 
+profile configuration, product profile configuration each with its own ui interface.
+
+Realistically I would be happy to at least be able to match some mock users to some mock products and brands based on data drawn from a 
+third party api and would like to focus more on the setup of a Continuous Delivery Continuous Deployment pipeline.
