@@ -234,73 +234,65 @@ require __DIR__ . '/vendor/autoload.php';
 			]);
 			$query = "WITH ImportData AS (
 				SELECT
-					`time_ref` AS time_ref,
-					`country_code` AS country_code,
-					`service_code` AS service_code,
-					SUM(value) AS import_value
-						FROM
-							`s3632442-a1-t2.a1.gs_quarterly_sept_20`
-						WHERE
-							value IS NOT NULL
-							AND account = 'Imports'
-							AND `time_ref` BETWEEN 201301 AND 201512 -- Filter for 2013 to 2015
-							AND `product_type`= 'Services'
-						GROUP BY
-							time_ref, country_code, service_code
-					),
-					ExportData AS (
-						SELECT
-							`time_ref` AS time_ref,
-							`country_code` AS country_code,
-							`product_type` AS product_type,
-							`service_code` AS service_code,
-							SUM(value) AS export_value
-						FROM
-							`s3632442-a1-t2.a1.gs_quarterly_sept_20`
-						WHERE
-							value IS NOT NULL
-							AND account = 'Exports'
-							AND `time_ref` BETWEEN 201301 AND 201512 -- Filter for 2013 to 2015
-							AND `product_type` = 'Services'
-						GROUP BY
-							time_ref, country_code, product_type, service_code
-					),
-					TradeSurplus AS (
-						SELECT
-							i.time_ref,
-							c.country_label AS country_label,
-							'Services' AS product_type,
-							i.service_code,
-							(e.export_value - i.import_value) AS trade_surplus_value,
-							'F' AS status
-						FROM
-							ImportData i
-						LEFT JOIN
-							ExportData e
-						ON
-							i.time_ref = e.time_ref
-							AND i.country_code = e.country_code
-						LEFT JOIN
-							`s3632442-a1-t2.a1.country_classification` AS c
-						ON
-							i.country_code = c.`country_code`
-						WHERE
-							e.export_value IS NOT NULL
-							AND c.country_label <> 'Total' -- Exclude Total country labels
-					)
-					SELECT
-						sc.`service_label` AS service_label,
-						trade_surplus_value
-					FROM
-						TradeSurplus ts
-					JOIN
-						`s3632442-a1-t2.a1.service_classification` AS sc
-					ON
-						ts.service_code = sc.`service_code`
-					ORDER BY
-						trade_surplus_value DESC
-					LIMIT
-						25;
+					time_ref,
+					country_code,
+					SUM(Value) AS import_value
+				FROM
+					`s3632442-a1-t2.a1.gs_quarterly_sept_20`
+				WHERE
+					Value IS NOT NULL
+					AND Account = 'Imports'
+					AND time_ref BETWEEN 201301 AND 201512 -- Filter for 2013 to 2015
+				GROUP BY
+					time_ref, country_code
+			),
+			ExportData AS (
+				SELECT
+					time_ref,
+					country_code,
+					SUM(Value) AS export_value
+				FROM
+					`s3632442-a1-t2.a1.gs_quarterly_sept_20`
+				WHERE
+					Value IS NOT NULL
+					AND Account = 'Exports'
+					AND time_ref BETWEEN 201301 AND 201512 -- Filter for 2013 to 2015
+				GROUP BY
+					time_ref, country_code
+			),
+			TradeDeficit AS (
+				SELECT
+					i.time_ref,
+					c.country_label,
+					'Imports' AS product_type,
+					(i.import_value - e.export_value) AS trade_deficit_value,
+					'F' AS status
+				FROM
+					ImportData i
+				LEFT JOIN
+					ExportData e
+				ON
+					i.time_ref = e.time_ref
+					AND i.country_code = e.country_code
+				LEFT JOIN
+					`s3632442-a1-t2.a1.country_classification` AS c
+				ON
+					i.country_code = c.country_code
+				WHERE
+					e.export_value IS NOT NULL
+					AND c.country_label <> 'Total' -- Exclude Total country labels
+			)
+			SELECT
+				country_label,
+				product_type,
+				trade_deficit_value,
+				status
+			FROM
+				TradeDeficit
+			ORDER BY
+				trade_deficit_value 
+			LIMIT
+				25;;
 		";
 			$queryJobConfig = $client->query($query);
 			$queryResults = $client->runQuery($queryJobConfig);
